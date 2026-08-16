@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          pip install -r api/requirements.txt
+          pip install ruff
+
+      - name: Lint
+        run: ruff check agent api
+
+      - name: Test with coverage
+        run: |
+          pytest agent/tests api/tests --cov=agent --cov=api/src --cov-report=term-missing
+          python -c "import pytest_cov"
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install
+        working-directory: web
+        run: npm ci || npm install
+
+      - name: Build
+        working-directory: web
+        run: npm run build

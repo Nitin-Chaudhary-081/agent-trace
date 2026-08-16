@@ -1,0 +1,10 @@
+agenttrace.sqlite*
+MEMORY.md.lock
+.coverage
+.pytest_cache
+__pycache__/
+*.pyc
+.snapshots/
+web/.next/
+web/node_modules/
+.env
