@@ -135,6 +135,27 @@ class WebSearchTool(BaseTool):
         return ""
 
     @staticmethod
+    def _search_query(query: str) -> str:
+        """Strip task framing so engines search the topic, not the verb.
+
+        'Research about robotics' -> 'robotics'; 'lookup Flask docs' ->
+        'flask docs'. Falls back to the original when nothing distinctive
+        remains."""
+        framing = {
+            "research", "search", "web", "summarize", "summarise",
+            "report", "lookup", "query", "about", "find", "information",
+            "info", "data", "topic", "please", "want", "need", "write",
+            "create", "make", "using", "with", "for", "of", "the", "and",
+            "on", "into", "best", "top", "how", "what", "is", "a", "an",
+            "to", "i", "me", "give", "get", "show", "tell",
+        }
+        kept = [
+            w for w in query.split()
+            if w.lower() not in framing and len(w) > 1
+        ]
+        return " ".join(kept) if kept else query
+
+    @staticmethod
     def _relevance(url: str, title: str, query: str) -> int:
         """Score a result by how many distinctive query tokens appear in its
         title/url, so a Python-focused query prefers a Python page over a
@@ -188,6 +209,30 @@ class WebSearchTool(BaseTool):
         text = soup.get_text(separator=" ", strip=True)
         return text[: self.max_content_chars]
 
+    _BOILERPLATE_MARKERS = (
+        "this page displays a fallback",
+        "enable javascript",
+        "javascript is required",
+        "you need to enable javascript",
+        "waiting for",
+        "checking your browser",
+        "access denied",
+        "captcha",
+        "please enable cookies",
+    )
+
+    def _is_usable_content(self, text: str) -> bool:
+        """Reject near-empty or boilerplate/notice-only pages so a
+        results page that requires JS doesn't win over real content."""
+        stripped = (text or "").strip()
+        if len(stripped) < 100:
+            return False
+        lowered = stripped.lower()
+        for marker in self._BOILERPLATE_MARKERS:
+            if marker in lowered:
+                return False
+        return True
+
     def invoke(self, query: str = "", url: str = "", **params: Any) -> ToolResult:
         if not query.strip():
             return ToolResult.failure("invalid_query")
@@ -200,14 +245,20 @@ class WebSearchTool(BaseTool):
             else:
                 target = ""
                 content = ""
-                results = self._bounded(self._result_urls, query)
+                search_for = self._search_query(query)
+                results = self._bounded(self._result_urls, search_for)
                 results.sort(
-                    key=lambda r: self._relevance(r[0], r[1], query),
+                    key=lambda r: self._relevance(r[0], r[1], search_for),
                     reverse=True,
                 )
                 for candidate, _title in results:
                     try:
-                        content = self._bounded(self._extract_content, candidate)
+                        candidate_content = self._bounded(
+                            self._extract_content, candidate
+                        )
+                        if not self._is_usable_content(candidate_content):
+                            continue
+                        content = candidate_content
                         target = candidate
                         break
                     except Exception:  # noqa: BLE001 - try next result

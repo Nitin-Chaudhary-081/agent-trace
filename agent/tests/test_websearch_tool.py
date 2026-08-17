@@ -84,3 +84,22 @@ def test_blank_query_rejected():
     result = tool.invoke(query="   ")
     assert result.success is False
     assert result.error == "invalid_query"
+
+
+def test_search_query_strips_task_framing():
+    tool = _tool()
+    assert tool._search_query("Research about robotics") == "robotics"
+    assert tool._search_query("lookup Flask docs") == "Flask docs"
+    assert tool._search_query("summarize my inbox please") == "my inbox"
+    assert tool._search_query("python") == "python"
+
+
+def test_is_usable_content_rejects_boilerplate():
+    tool = _tool()
+    assert tool._is_usable_content("short") is False
+    assert tool._is_usable_content("This page displays a fallback because interactive scripts are disabled") is False
+    assert tool._is_usable_content("Please enable JavaScript and cookies in your browser to continue") is False
+    assert tool._is_usable_content(
+        "Robotics is the interdisciplinary study and practice of the design, "
+        "construction, operation, and use of robots."
+    ) is True
