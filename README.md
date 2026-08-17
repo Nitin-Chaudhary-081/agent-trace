@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/hero.svg" width="100%" alt="AgentTrace — AI agent observer">
+</p>
+
 # AgentTrace
 
 [![CI](https://github.com/Nitin-Chaudhary-081/agent-trace/actions/workflows/ci.yml/badge.svg)](https://github.com/Nitin-Chaudhary-081/agent-trace/actions/workflows/ci.yml)
