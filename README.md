@@ -1,5 +1,7 @@
 # AgentTrace
 
+[![CI](https://github.com/Nitin-Chaudhary-081/agent-trace/actions/workflows/ci.yml/badge.svg)](https://github.com/Nitin-Chaudhary-081/agent-trace/actions/workflows/ci.yml)
+
 A lightweight **AI-agent observer**: a Python agent runtime that executes
 tool-calling tasks, a Flask API that exposes every run live, and a Next.js
 observer UI that shows the golden-path score, memory, trajectory, and
