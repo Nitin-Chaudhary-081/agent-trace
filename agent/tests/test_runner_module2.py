@@ -26,7 +26,7 @@ class RepeatingProcessor(LogicProcessor):
         super().__init__(max_steps=20)
 
     def decide(self, memory, observations):
-        done = len([l for l in memory.get("COMPLETED_STEPS", "").splitlines() if l])
+        done = len([line for line in memory.get("COMPLETED_STEPS", "").splitlines() if line])
         if done >= 6:
             return None
         return Action("web_search", {"query": "test"})
