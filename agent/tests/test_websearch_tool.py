@@ -6,8 +6,6 @@ paths are deterministic via injection so CI stays fast and offline-safe.
 
 import time
 
-import pytest
-
 from agent.tools.websearch_tool import WebSearchTool
 from agent.core.types import ToolResult
 

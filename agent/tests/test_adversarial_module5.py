@@ -5,8 +5,6 @@ The suite builds attacks from a configured ToolRegistry + Trajectory so the
 full detect/remediate path is exercised against real code paths.
 """
 
-import pytest
-
 from agent.security.adversarial import AdversarialSuite, ATTACK_TYPES
 from agent.security.attacks.prompt_injection import PromptInjectionAttack
 from agent.security.attacks.authority_escalation import AuthorityEscalationAttack
@@ -60,7 +58,7 @@ def test_prompt_injection_detected_and_remediated():
 
 def test_authority_escalation_blocked():
     from agent.core.tool_registry import ToolRegistry
-    from agent.core.types import Action, ToolResult
+    from agent.core.types import ToolResult
 
     reg = ToolRegistry(timeout_s=5.0)
     calls = []

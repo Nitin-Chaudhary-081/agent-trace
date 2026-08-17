@@ -1,8 +1,6 @@
 """Tests for Module 2 memory: summarization, session discovery, resume."""
 
-import pytest
-
-from agent.core.memory import MemoryError, MemoryFile
+from agent.core.memory import MemoryFile
 
 T = 4000
 

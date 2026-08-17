@@ -9,7 +9,7 @@ every request.
 
 import time
 
-from flask import Blueprint, current_app, jsonify
+from flask import Blueprint, jsonify
 
 from agent.core.tool_registry import ToolRegistry
 from agent.core.types import ToolResult

@@ -1,12 +1,10 @@
 """Tests for the agent runner execution loop."""
 
-import pytest
-
 from agent.core.memory import MemoryFile
 from agent.core.runner import AgentRunner
 from agent.core.tool_registry import ToolRegistry
 from agent.core.trajectory import Trajectory
-from agent.core.types import Action, ToolResult
+from agent.core.types import ToolResult
 from agent.services.logic_processor import LogicProcessor
 
 

@@ -5,9 +5,7 @@ import time
 import pytest
 
 from agent.core.tool_registry import (
-    ToolNotFoundError,
     ToolRegistry,
-    ToolTimeoutError,
     ToolValidationError,
 )
 from agent.core.types import Action, ToolResult

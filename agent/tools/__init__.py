@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from agent.core.tool_registry import ToolRegistry
-from agent.core.types import Action, ToolResult
+from agent.core.types import ToolResult
 
 
 @dataclass(frozen=True)

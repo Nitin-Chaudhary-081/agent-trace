@@ -5,9 +5,6 @@ fakes are injected only in offline tests; no mock lives in the tool itself.
 """
 
 import json
-import os
-
-import pytest
 
 from agent.core.trajectory import Trajectory
 from agent.core.types import Action, ToolResult

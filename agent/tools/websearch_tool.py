@@ -9,8 +9,6 @@ for injected transports that ignore the requests timeout kwarg).
 import base64
 import ipaddress
 import socket
-import threading
-import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any

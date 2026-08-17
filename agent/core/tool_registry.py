@@ -7,7 +7,7 @@ or typed exceptions; never bare excepts.
 
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
-from typing import Any, Callable
+from typing import Callable
 
 from agent.core.types import Action, ToolResult
 

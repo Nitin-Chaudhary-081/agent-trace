@@ -12,7 +12,6 @@ Score formula (per spec):
 from typing import Any
 
 from agent.evaluator.rubrics import (
-    Deviation,
     score_run_data,
     task_type_for_goal,
 )

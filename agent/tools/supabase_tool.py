@@ -9,7 +9,6 @@ invalid_table_name / timeout / api_error.
 
 import re
 import time
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any

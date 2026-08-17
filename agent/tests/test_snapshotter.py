@@ -1,7 +1,5 @@
 """Tests for the snapshotter service — live Supabase client + local degrade."""
 
-import pytest
-
 from agent.core.memory import MemoryFile
 from agent.services.snapshotter import MemorySnapshotter
 

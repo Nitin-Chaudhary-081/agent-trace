@@ -21,7 +21,6 @@ from agent.core.tool_registry import ToolRegistry
 from agent.core.trajectory import Trajectory
 from agent.core.types import Action, ToolResult
 from agent.evaluator.golden_path import GoldenPathEvaluator
-from agent.security.sanitizer import sanitize_tool_output
 from agent.services.logic_processor import LogicProcessor
 from agent.services.snapshotter import MemorySnapshotter
 

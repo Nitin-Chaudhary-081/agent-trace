@@ -1,7 +1,5 @@
 """Application factory — Flask, CodeSentinel pattern."""
 
-import os
-
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 

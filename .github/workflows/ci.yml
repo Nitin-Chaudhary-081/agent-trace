@@ -40,9 +40,17 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install API deps
+        run: pip install -r api/requirements.txt
+
       - name: Install
         working-directory: web
-        run: npm ci || npm install
+        run: npm install
 
       - name: Unit tests (jest)
         working-directory: web
@@ -60,12 +68,13 @@ jobs:
         working-directory: web
         run: |
           cd ..
+          export PYTHONPATH="$PWD:$PWD/api:$PWD/api/src:$PWD/agent"
           AGENTTRACE_DB_PATH=$(mktemp /tmp/ci_e2e_XXXX.sqlite) \
           AGENTTRACE_MEMORY_PATH=$(mktemp /tmp/ci_e2e_MEMORY_XXXX.md) \
             python3 -m flask --app src/app.py run --port 8000 > /tmp/ci_api.log 2>&1 &
           API_PID=$!
           trap 'kill $API_PID 2>/dev/null || true' EXIT
-          (cd web && npx next dev --port 3001 > /tmp/ci_ui.log 2>&1) &
+          (cd web && npx next start --port 3001 > /tmp/ci_ui.log 2>&1) &
           UI_PID=$!
           trap 'kill $API_PID $UI_PID 2>/dev/null || true' EXIT
           for i in $(seq 1 60); do
@@ -76,4 +85,8 @@ jobs:
             curl -sf -o /dev/null http://127.0.0.1:3001 && break
             sleep 1
           done
+          curl -sf http://127.0.0.1:8000/health >/dev/null \
+            || { echo "API failed to start:"; cat /tmp/ci_api.log; exit 1; }
+          curl -sf -o /dev/null http://127.0.0.1:3001 \
+            || { echo "UI failed to start:"; cat /tmp/ci_ui.log; exit 1; }
           cd web && npx playwright test

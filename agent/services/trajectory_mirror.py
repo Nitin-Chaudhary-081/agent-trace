@@ -6,8 +6,6 @@ sync_run is a no-op (typed, never raises). The mirror performs zero mocks —
 transport fakes are injected only in offline tests.
 """
 
-import json
-import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any

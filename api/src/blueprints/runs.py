@@ -3,7 +3,7 @@
 import re
 import uuid
 
-from flask import Blueprint, current_app, jsonify, request, Response
+from flask import Blueprint, current_app, jsonify, Response
 
 from agent.services.reporter import Reporter
 from src.errors import NotFoundError

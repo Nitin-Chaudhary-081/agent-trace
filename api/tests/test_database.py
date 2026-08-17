@@ -1,7 +1,5 @@
 """Tests for src.database — SQLite helpers."""
 
-import pytest
-
 from src.database import connect, get_db, run_exists
 
 

@@ -1,7 +1,5 @@
 """Tests for Module 4 rubric definitions and deviation reporting."""
 
-import pytest
-
 from agent.evaluator.golden_path import GoldenPathEvaluator
 from agent.evaluator.rubrics import (
     RUBRICS,

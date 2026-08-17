@@ -2,8 +2,6 @@
 
 import json
 
-from src.app import create_app
-
 
 def test_health(client):
     resp = client.get("/health")
