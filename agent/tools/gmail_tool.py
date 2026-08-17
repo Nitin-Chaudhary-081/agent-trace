@@ -67,7 +67,13 @@ class GmailTool(BaseTool):
 
         if operation == "list_inbox":
             limit = params.get("limit", 10)
+            # Exclude the account's own sent messages (AgentTrace emails
+            # itself for test/demo sends); otherwise a later inbox_summarize
+            # would re-ingest those bodies and store them as data notes,
+            # which data_lookup_report then quotes back into the next email.
             q = "is:unread" if params.get("unread_only") else ""
+            if q:
+                q += " -from:me"
             resp = self._request(
                 "GET",
                 f"{GMAIL_API}/messages",
