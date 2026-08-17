@@ -50,15 +50,47 @@ class WebSearchTool(BaseTool):
             pool.shutdown(wait=False)
 
     def _result_urls(self, query: str, limit: int = 5) -> list[tuple[str, str]]:
-        """Return (url, title) pairs for the top organic results."""
+        """Return (url, title) pairs for the top organic results, trying
+        DuckDuckGo first and falling back to Bing when DDG rate-limits
+        (HTTP 202 anomaly page) or returns no organic results."""
+        ddg = self._ddg_results(query, limit)
+        if ddg:
+            return ddg
+        return self._bing_results(query, limit)
+
+    def _ddg_results(self, query: str, limit: int = 5) -> list[tuple[str, str]]:
         resp = self._get(SEARCH_ENDPOINT, params={"q": query})
-        resp.raise_for_status()
+        if resp.status_code != 200:
+            return []
         soup = BeautifulSoup(resp.text, "html.parser")
         results: list[tuple[str, str]] = []
         for a in soup.select("a.result__a"):
             title = a.get_text(" ", strip=True)
             href = a.get("href", "")
             url = self._decode_ddg_redirect(href)
+            if not url:
+                continue
+            results.append((url, title))
+            if len(results) >= limit:
+                break
+        return results
+
+    def _bing_results(self, query: str, limit: int = 5) -> list[tuple[str, str]]:
+        resp = self._get("https://www.bing.com/search", params={"q": query})
+        if resp.status_code != 200:
+            return []
+        soup = BeautifulSoup(resp.text, "html.parser")
+        results: list[tuple[str, str]] = []
+        for li in soup.select("li.b_algo"):
+            a = li.select_one("h2 a") or li.select_one("a")
+            if not a:
+                continue
+            title = a.get_text(" ", strip=True)
+            href = a.get("href", "")
+            if href.startswith("http") and "bing.com/ck/a" not in href:
+                url = href
+            else:
+                url = self._decode_bing_redirect(href)
             if not url:
                 continue
             results.append((url, title))

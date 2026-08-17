@@ -4,7 +4,7 @@ from agent.core.memory import MemoryFile
 from agent.core.runner import AgentRunner
 from agent.core.tool_registry import ToolRegistry
 from agent.core.trajectory import Trajectory
-from agent.core.types import ToolResult
+from agent.core.types import Action, ToolResult
 from agent.services.logic_processor import LogicProcessor
 from agent.services.snapshotter import MemorySnapshotter
 
@@ -17,6 +17,19 @@ def make_fake_tools() -> ToolRegistry:
             lambda **kw: ToolResult(success=True, output={}, error=None, duration_ms=1),
         )
     return registry
+
+
+class RepeatingProcessor(LogicProcessor):
+    """Drives a deterministic long plan for snapshot/resume tests."""
+
+    def __init__(self) -> None:
+        super().__init__(max_steps=20)
+
+    def decide(self, memory, observations):
+        done = len([l for l in memory.get("COMPLETED_STEPS", "").splitlines() if l])
+        if done >= 6:
+            return None
+        return Action("web_search", {"query": "test"})
 
 
 def test_runner_resumes_after_kill_mid_run(tmp_path):
@@ -70,12 +83,12 @@ def test_snapshot_after_every_5_steps(tmp_path):
         registry=make_fake_tools(),
         memory=memory,
         trajectory=traj,
-        processor=LogicProcessor(),
+        processor=RepeatingProcessor(),
         snapshotter=snapshotter,
     )
     runner.run("loop forever", "data_lookup_report")
 
-    # plan is 5 actions for unknown task; snapshots happen per 5 completed steps
+    # plan runs 6 steps; snapshots happen every 5 completed steps
     assert len(list((tmp_path / "snapshots").glob("*.md"))) >= 1
 
 

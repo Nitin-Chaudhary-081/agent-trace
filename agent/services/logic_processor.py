@@ -50,10 +50,11 @@ class LogicProcessor:
                 Action("gmail_send", {"to": os.environ.get("GMAIL_TEST_TO", "self"), "subject": "Data report", "body": "See attached data report."}),
             ]
 
-        # Unknown task type: bounded fallback loop so the runner exercises
-        # max_steps handling deterministically.
+        # Unknown task type: a bounded single cycle so unrecognized tasks
+        # (typos, arbitrary phrasing) still run end-to-end — search → read →
+        # send — and then complete, instead of failing or looping.
         fallback = [Action(tool, {}) for tool in DEFAULT_FALLBACK_STEPS]
-        return (fallback * ((self.max_steps // len(fallback)) + 1))[: self.max_steps]
+        return fallback
 
     def decide(self, memory: MemoryFile, observations: dict) -> Action | None:
         data = memory.read() if isinstance(memory, MemoryFile) else memory
@@ -90,9 +91,27 @@ class LogicProcessor:
         tool = action.tool
         kind = self._plan_kind(goal)
 
-        # Fallback loop (unknown task types): keep static actions so the
-        # runner exercises max_steps handling deterministically.
+        # Fallback loop (unknown task types): keep the static sequence but
+        # thread real payloads so an unrecognized task still runs
+        # end-to-end (search → select → send) instead of failing on empty
+        # or unconfigured params.
         if kind == "fallback":
+            if tool == "web_search":
+                return Action(tool, {"query": goal})
+            if tool == "supabase_select":
+                return Action(tool, {"table": "public_data", "limit": 50, "order": "id.desc"})
+            if tool == "gmail_send":
+                if not self._has_stored_rows(observations):
+                    return None
+                subject, body = self._email_for(tool, goal, observations)
+                return Action(
+                    tool,
+                    {
+                        "to": os.environ.get("GMAIL_TEST_TO", "self"),
+                        "subject": subject,
+                        "body": body,
+                    },
+                )
             return action
 
         if tool == "supabase_insert":

@@ -49,23 +49,23 @@ def test_runner_respects_max_steps(tmp_path):
     memory = MemoryFile(tmp_path / "MEMORY.md")
     traj = Trajectory(tmp_path / "traj.sqlite")
     registry = ToolRegistry(timeout_s=2.0)
-    for tool in ("web_search", "supabase_select", "gmail_send"):
+    for tool in ("web_search", "supabase_insert", "supabase_select", "gmail_send"):
         registry.register(
             tool,
-            lambda: ToolResult(success=True, output={}, error=None, duration_ms=1),
+            lambda **kw: ToolResult(success=True, output={}, error=None, duration_ms=1),
         )
     runner = AgentRunner(
         registry=registry,
         memory=memory,
         trajectory=traj,
         processor=LogicProcessor(max_steps=5),
-        max_steps=5,
+        max_steps=2,
     )
 
-    run_id = runner.run("loop forever", "data_lookup_report")
+    run_id = runner.run("research Python", "research_and_email")
 
     steps = traj.steps(run_id)
-    assert len(steps) == 5
+    assert len(steps) == 2
     assert traj.get_run(run_id)["status"] == "STOPPED_MAX_STEPS"
 
 

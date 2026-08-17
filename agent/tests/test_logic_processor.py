@@ -135,3 +135,61 @@ def test_decide_sanitizes_observation_content_in_insert(tmp_path):
     assert "[SANITIZED]" in note
     assert "[EMAIL]" in note
     assert "a@b.com" not in note
+
+
+def test_fallback_plan_is_single_bounded_cycle(tmp_path):
+    memory = MemoryFile(tmp_path / "MEMORY.md")
+    memory.write(GOAL="Resrerch about robotics", STATUS="RUNNING")
+    processor = LogicProcessor(max_steps=8)
+
+    plan = processor.plan_for_task("Resrerch about robotics")
+    assert [a.tool for a in plan] == ["web_search", "supabase_select", "gmail_send"]
+
+    search = processor.decide(memory, {})
+    assert search.tool == "web_search"
+    assert search.params["query"] == "Resrerch about robotics"
+    memory.append_completed_step("web_search")
+
+    select = processor.decide(memory, {})
+    assert select.tool == "supabase_select"
+    assert select.params["table"] == "public_data"
+    memory.append_completed_step("supabase_select")
+
+    send = processor.decide(memory, {"rows": [{"id": 1, "note": "robotics notes"}]})
+    assert send.tool == "gmail_send"
+    assert "robotics" in send.params["body"]
+    memory.append_completed_step("gmail_send")
+
+    assert processor.decide(memory, {}) is None
+
+
+def test_fallback_plan_runs_end_to_end_and_completes(tmp_path):
+    from agent.core.runner import AgentRunner
+    from agent.core.tool_registry import ToolRegistry
+    from agent.core.trajectory import Trajectory
+    from agent.core.types import ToolResult
+
+    memory = MemoryFile(tmp_path / "MEMORY.md")
+    traj = Trajectory(tmp_path / "traj.sqlite")
+    registry = ToolRegistry(timeout_s=2.0)
+    for tool in ("web_search", "supabase_select", "gmail_send"):
+        registry.register(
+            tool,
+            lambda **kw: ToolResult(success=True, output={}, error=None, duration_ms=1),
+        )
+    runner = AgentRunner(
+        registry=registry,
+        memory=memory,
+        trajectory=traj,
+        processor=LogicProcessor(max_steps=8),
+        max_steps=8,
+    )
+
+    run_id = runner.run("Resrerch about robotics", "research_and_email")
+
+    assert traj.get_run(run_id)["status"] == "COMPLETED"
+    assert [s["tool_called"] for s in traj.steps(run_id)] == [
+        "web_search",
+        "supabase_select",
+        "gmail_send",
+    ]
