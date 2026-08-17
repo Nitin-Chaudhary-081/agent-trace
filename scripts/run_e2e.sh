@@ -11,7 +11,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-PY="${PY:-/data/data/com.termux/files/usr/bin/python3}"
+PY="${PY:-python3}"
+# On Termux (this repo's dev environment) prefer the Android Python which
+# carries the deps; on other platforms use whatever python3 is on PATH.
+if [ -x /data/data/com.termux/files/usr/bin/python3 ] && ! "$PY" -c 'import flask' 2>/dev/null; then
+  PY=/data/data/com.termux/files/usr/bin/python3
+fi
 export PYTHONPATH="$ROOT:$ROOT/api:$ROOT/api/src:$ROOT/agent${PYTHONPATH:+:$PYTHONPATH}"
 
 PORT="${AGENTTRACE_E2E_PORT:-8000}"
