@@ -89,12 +89,15 @@ class SupabaseTool(BaseTool):
         data = params.get("data") or []
         limit = params.get("limit", 100)
         eq = params.get("eq") or {}
+        order = params.get("order") or ""
         start = time.monotonic()
 
         if operation == "select":
             qs = {"select": "*", "limit": str(limit)}
             for col, val in eq.items():
                 qs[col] = f"eq.{val}"
+            if order:
+                qs["order"] = order
             res = self._postgrest("GET", f"/rest/v1/{table}", params=qs)
         elif operation == "insert":
             res = self._postgrest(

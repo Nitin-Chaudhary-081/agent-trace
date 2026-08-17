@@ -12,7 +12,7 @@ import socket
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from bs4 import BeautifulSoup
 import requests
@@ -20,7 +20,7 @@ import requests
 from agent.core.types import ToolResult
 from agent.tools import BaseTool
 
-SEARCH_ENDPOINT = "https://www.bing.com/search"
+SEARCH_ENDPOINT = "https://html.duckduckgo.com/html/"
 USER_AGENT = (
     "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -49,33 +49,37 @@ class WebSearchTool(BaseTool):
             future.cancel()
             pool.shutdown(wait=False)
 
-    def _result_urls(self, query: str, limit: int = 5) -> list[str]:
+    def _result_urls(self, query: str, limit: int = 5) -> list[tuple[str, str]]:
+        """Return (url, title) pairs for the top organic results."""
         resp = self._get(SEARCH_ENDPOINT, params={"q": query})
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
-        urls: list[str] = []
-        for li in soup.select("li.b_algo"):
-            a = li.select_one("h2 a") or li.select_one("a")
-            if not a:
-                continue
+        results: list[tuple[str, str]] = []
+        for a in soup.select("a.result__a"):
+            title = a.get_text(" ", strip=True)
             href = a.get("href", "")
-            if href.startswith("http") and "bing.com/ck/a" not in href:
-                urls.append(href)
+            url = self._decode_ddg_redirect(href)
+            if not url:
                 continue
-            decoded = self._decode_bing_redirect(href)
-            if decoded:
-                urls.append(decoded)
-            if len(urls) >= limit:
+            results.append((url, title))
+            if len(results) >= limit:
                 break
-        return urls
+        return results
+
+    @staticmethod
+    def _decode_ddg_redirect(href: str) -> str:
+        """DuckDuckGo wraps results in /l/?uddg=<urlencoded> redirects."""
+        if "uddg=" not in href:
+            return href if href.startswith("http") else ""
+        q = parse_qs(urlparse(href).query)
+        target = q.get("uddg", [""])[0]
+        if not target:
+            return ""
+        return unquote(target)
 
     @staticmethod
     def _decode_bing_redirect(href: str) -> str:
-        """Bing wraps organic results in /ck/a redirects; the real URL is the
-        base64-encoded `u` query parameter (which may carry a junk prefix).
-        """
-        from urllib.parse import parse_qs, urlparse
-
+        """Legacy Bing /ck/a redirect decoder (kept for compatibility)."""
         if "bing.com/ck/a" not in href:
             return ""
         encoded = parse_qs(urlparse(href).query).get("u", [""])[0]
@@ -97,6 +101,25 @@ class WebSearchTool(BaseTool):
             if decoded.startswith("http"):
                 return decoded
         return ""
+
+    @staticmethod
+    def _relevance(url: str, title: str, query: str) -> int:
+        """Score a result by how many distinctive query tokens appear in its
+        title/url, so a Python-focused query prefers a Python page over a
+        generic one. Weak tokens (best, top, web, etc.) match too broadly."""
+        stopwords = {
+            "best", "top", "web", "open", "source", "task", "project",
+            "research", "how", "what", "about", "using", "with", "for",
+            "the", "and", "free",
+        }
+        tokens = [
+            t for t in query.lower().split()
+            if len(t) > 2 and t not in stopwords
+        ]
+        if not tokens:
+            return 0
+        hay = f"{title.lower()} {url.lower()}"
+        return sum(1 for t in tokens if t in hay)
 
     def _is_safe_url(self, url: str) -> bool:
         """Blocks non-http(s) schemes and private/loopback/metadata hosts (SSRF)."""
@@ -145,7 +168,12 @@ class WebSearchTool(BaseTool):
             else:
                 target = ""
                 content = ""
-                for candidate in self._bounded(self._result_urls, query):
+                results = self._bounded(self._result_urls, query)
+                results.sort(
+                    key=lambda r: self._relevance(r[0], r[1], query),
+                    reverse=True,
+                )
+                for candidate, _title in results:
                     try:
                         content = self._bounded(self._extract_content, candidate)
                         target = candidate

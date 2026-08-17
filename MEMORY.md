@@ -1,20 +1,21 @@
 # AgentTrace Memory
 
 [GOAL]
-lookup records from table
+summarize my inbox
 
 [STATUS]
 COMPLETED
 
 [PROGRESS]
-Started run 24aadb32-d18c-41b4-b272-b3cfe8abc961
+Started run cabbcca5-1407-4fe3-a9a0-499acb9689dc
 
 [COMPLETED_STEPS]
-supabase_select
-gmail_send
+gmail_list_inbox
+gmail_read_email
+supabase_insert
 
 [NEXT_ACTIONS]
-task_type=research_and_email: web_search, supabase_insert, gmail_send
+task_type=inbox_summarize: gmail_list_inbox, gmail_read_email, supabase_insert
 
 [FAILURES]
 

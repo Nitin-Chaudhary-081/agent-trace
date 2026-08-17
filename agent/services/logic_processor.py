@@ -46,7 +46,7 @@ class LogicProcessor:
 
         if "query" in lower or "table" in lower or "lookup" in lower:
             return [
-                Action("supabase_select", {"table": "public_data", "limit": 50}),
+                Action("supabase_select", {"table": "public_data", "limit": 50, "order": "id.desc"}),
                 Action("gmail_send", {"to": os.environ.get("GMAIL_TEST_TO", "self"), "subject": "Data report", "body": "See attached data report."}),
             ]
 
@@ -149,7 +149,18 @@ class LogicProcessor:
             return str(observations["content"])
         rows = observations.get("data") or []
         if rows and isinstance(rows[0], dict) and rows[0].get("note"):
-            return str(rows[0]["note"])
+            # Prefer the most recently stored note: rows are typically the
+            # whole table (insertion order), so rows[-1] is the newest.
+            note_row = rows[-1]
+            if "id" in note_row:
+                try:
+                    note_row = max(
+                        rows,
+                        key=lambda r: int(r.get("id") or 0),
+                    )
+                except (TypeError, ValueError):
+                    pass
+            return str(note_row["note"])
         messages = observations.get("messages") or []
         if messages and isinstance(messages[0], dict):
             msg = messages[0]
