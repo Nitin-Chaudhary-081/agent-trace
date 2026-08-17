@@ -15,6 +15,9 @@ jest.mock("@/lib/api", () => ({
   fetchRun: jest.fn(async () => ({
     run: { run_id: "r1", status: "COMPLETED", golden_path_score: 100 },
     steps: [],
+    deviations: [
+      { kind: "missing_step", tool: "gmail_send", detail: "never called", severity: "warning" },
+    ],
   })),
 }))
 
@@ -23,6 +26,11 @@ describe("MemoryViewer", () => {
     render(<MemoryViewer />)
     await waitFor(() => expect(screen.getByTestId("memory-GOAL")).toHaveTextContent("research"))
     expect(screen.getByTestId("memory-STATUS")).toHaveTextContent("RUNNING")
+  })
+
+  it("renders NEXT_ACTIONS section", async () => {
+    render(<MemoryViewer />)
+    await waitFor(() => expect(screen.getByTestId("memory-NEXT_ACTIONS")).toBeInTheDocument())
   })
 })
 
@@ -40,5 +48,12 @@ describe("GoldenPathScore", () => {
   it("renders the score value", async () => {
     render(<GoldenPathScore runId="r1" />)
     await waitFor(() => expect(screen.getByTestId("score-value")).toHaveTextContent("100/100"))
+  })
+
+  it("renders deviations from the run", async () => {
+    render(<GoldenPathScore runId="r1" />)
+    await waitFor(() =>
+      expect(screen.getByTestId("deviation-0")).toHaveTextContent("missing_step"),
+    )
   })
 })

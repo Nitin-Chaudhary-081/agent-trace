@@ -52,6 +52,8 @@ class TrajectoryMirror:
                 resp = future.result(timeout=self.timeout_s)
             except TimeoutError:
                 return {"error": "timeout"}
+            except requests.RequestException as exc:
+                return {"error": f"request_failed: {exc.__class__.__name__}"}
         if resp.status_code >= 400:
             return {"error": f"api_error: {resp.status_code} {resp.text[:200]}"}
         return {"ok": True}

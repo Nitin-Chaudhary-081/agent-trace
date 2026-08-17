@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react"
 import { fetchMemory, type MemorySections } from "@/lib/api"
 
-const SECTIONS = ["GOAL", "STATUS", "PROGRESS", "COMPLETED_STEPS", "FAILURES", "SESSION_ID"]
+const SECTIONS = [
+  "GOAL",
+  "STATUS",
+  "PROGRESS",
+  "COMPLETED_STEPS",
+  "NEXT_ACTIONS",
+  "FAILURES",
+  "SESSION_ID",
+]
 
 export function MemoryViewer() {
   const [sections, setSections] = useState<MemorySections>({})

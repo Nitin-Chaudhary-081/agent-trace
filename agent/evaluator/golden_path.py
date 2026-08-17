@@ -42,7 +42,11 @@ class GoldenPathEvaluator:
         if not isinstance(data, dict):
             data = {"GOAL": ""}
         goal = data.get("GOAL", "")
-        ttype = task_type or task_type_for_goal(goal)
+        # The executed plan is keyword-derived from the goal, so scoring must
+        # follow the goal-derived task type when the goal maps unambiguously;
+        # otherwise a UI defaulting to another task_type would score a correct
+        # run against the wrong rubric.
+        ttype = task_type_for_goal(goal) or task_type
         if ttype is None:
             return {
                 "score": None,

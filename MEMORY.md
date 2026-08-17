@@ -1,18 +1,17 @@
 # AgentTrace Memory
 
 [GOAL]
-research Python Flask, store in supabase, email me summary
+lookup records from table
 
 [STATUS]
 COMPLETED
 
 [PROGRESS]
-Started run 652ccba7-5028-45ea-8051-26ac7c64e1bf
+Started run 24aadb32-d18c-41b4-b272-b3cfe8abc961
 
 [COMPLETED_STEPS]
-step
-step
-step
+supabase_select
+gmail_send
 
 [NEXT_ACTIONS]
 task_type=research_and_email: web_search, supabase_insert, gmail_send

@@ -17,17 +17,18 @@ jobs:
           python-version: "3.13"
 
       - name: Install dependencies
-        run: |
-          pip install -r api/requirements.txt
-          pip install ruff
+        run: pip install -r api/requirements.txt ruff
 
       - name: Lint
         run: ruff check agent api
 
-      - name: Test with coverage
+      - name: Test with coverage gate
         run: |
-          pytest agent/tests api/tests --cov=agent --cov=api/src --cov-report=term-missing
-          python -c "import pytest_cov"
+          pytest agent/tests api/tests --cov=agent --cov=api/src \
+            --cov-report=term-missing --cov-fail-under=80
+
+      - name: Offline E2E smoke test
+        run: AGENTTRACE_E2E_PORT=8000 ./scripts/run_e2e.sh
 
   web:
     runs-on: ubuntu-latest
@@ -43,6 +44,36 @@ jobs:
         working-directory: web
         run: npm ci || npm install
 
-      - name: Build
+      - name: Unit tests (jest)
+        working-directory: web
+        run: npx jest --ci
+
+      - name: Build (type check + production build)
         working-directory: web
         run: npm run build
+
+      - name: Install Playwright browsers
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E (observer flows)
+        working-directory: web
+        run: |
+          cd ..
+          AGENTTRACE_DB_PATH=$(mktemp /tmp/ci_e2e_XXXX.sqlite) \
+          AGENTTRACE_MEMORY_PATH=$(mktemp /tmp/ci_e2e_MEMORY_XXXX.md) \
+            python3 -m flask --app src/app.py run --port 8000 > /tmp/ci_api.log 2>&1 &
+          API_PID=$!
+          trap 'kill $API_PID 2>/dev/null || true' EXIT
+          (cd web && npx next dev --port 3001 > /tmp/ci_ui.log 2>&1) &
+          UI_PID=$!
+          trap 'kill $API_PID $UI_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            curl -sf http://127.0.0.1:8000/health >/dev/null && break
+            sleep 1
+          done
+          for i in $(seq 1 120); do
+            curl -sf -o /dev/null http://127.0.0.1:3001 && break
+            sleep 1
+          done
+          cd web && npx playwright test

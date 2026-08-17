@@ -63,7 +63,9 @@ export async function submitTask(
   return res.json()
 }
 
-export async function fetchRun(runId: string): Promise<{ run: Run; steps: Step[] }> {
+export async function fetchRun(
+  runId: string,
+): Promise<{ run: Run; steps: Step[]; deviations: Deviation[] }> {
   return getJSON(`/api/v1/runs/${runId}`)
 }
 

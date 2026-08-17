@@ -84,7 +84,13 @@ class GmailTool(BaseTool):
         if operation == "read_email":
             message_id = params.get("message_id", "")
             if not message_id:
-                return ToolResult.failure("invalid_input")
+                # The observer plan calls read_email after list_inbox without
+                # threading an id through; fall back to the latest unread
+                # message so the golden path works live instead of hard-failing.
+                listing = self._invoke_with_token("list_inbox", token, limit=1, unread_only=True)
+                if not listing.success or not listing.output.get("messages"):
+                    return ToolResult.failure("no_messages")
+                message_id = listing.output["messages"][0]["id"]
             resp = self._request(
                 "GET",
                 f"{GMAIL_API}/messages/{message_id}",
@@ -149,8 +155,6 @@ class GmailTool(BaseTool):
         if operation == "send_email":
             if not (params.get("to") and params.get("subject") and params.get("body")):
                 return ToolResult.failure("invalid_input")
-        if operation == "read_email" and not params.get("message_id"):
-            return ToolResult.failure("invalid_input")
         if not (self.client_id and self.client_secret and self.refresh_token):
             return ToolResult.failure("not_configured")
 

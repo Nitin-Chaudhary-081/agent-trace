@@ -33,7 +33,7 @@ class SupabaseTool(BaseTool):
     timeout_s: float = DEFAULT_TIMEOUT_S
     session: Any = field(default=None, repr=False)
 
-    def _postgrest(self, method: str, path: str, json=None, params=None) -> dict:
+    def _postgrest(self, method: str, path: str, json=None, params=None, prefer=None) -> dict:
         """Runs a PostgREST call with real timeout enforcement in a worker."""
 
         def _call() -> requests.Response:
@@ -43,6 +43,8 @@ class SupabaseTool(BaseTool):
                 "Authorization": f"Bearer {self.service_key}",
                 "Content-Type": "application/json",
             }
+            if prefer:
+                headers["Prefer"] = prefer
             kwargs: dict[str, Any] = {
                 "headers": headers,
                 "timeout": self.timeout_s,
@@ -96,7 +98,12 @@ class SupabaseTool(BaseTool):
                 qs[col] = f"eq.{val}"
             res = self._postgrest("GET", f"/rest/v1/{table}", params=qs)
         elif operation == "insert":
-            res = self._postgrest("POST", f"/rest/v1/{table}", json=data)
+            res = self._postgrest(
+                "POST",
+                f"/rest/v1/{table}",
+                json=data,
+                prefer="return=representation",
+            )
             if "data" not in res:
                 res["rows_affected"] = 0
         elif operation == "update":

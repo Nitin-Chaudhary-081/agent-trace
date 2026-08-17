@@ -7,11 +7,14 @@ for injected transports that ignore the requests timeout kwarg).
 """
 
 import base64
+import ipaddress
+import socket
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 import requests
@@ -85,7 +88,7 @@ class WebSearchTool(BaseTool):
             padded = raw + "=" * (-len(raw) % 4)
             try:
                 return base64.urlsafe_b64decode(padded).decode("utf-8")
-            except (ValueError, UnicodeDecodeError, Exception):  # noqa: BLE001
+            except (ValueError, UnicodeDecodeError):
                 return ""
 
         decoded = _try(encoded)
@@ -96,6 +99,32 @@ class WebSearchTool(BaseTool):
             if decoded.startswith("http"):
                 return decoded
         return ""
+
+    def _is_safe_url(self, url: str) -> bool:
+        """Blocks non-http(s) schemes and private/loopback/metadata hosts (SSRF)."""
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        host = parsed.hostname or ""
+        if host in ("localhost", "127.0.0.1", "::1"):
+            return False
+        if host == "169.254.169.254":  # cloud metadata
+            return False
+        try:
+            ip = ipaddress.ip_address(host)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return False
+        except ValueError:
+            # hostname: resolve and re-check
+            try:
+                for info in socket.getaddrinfo(host, parsed.port or 80):
+                    addr = ipaddress.ip_address(info[4][0])
+                    if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+                        return False
+                return True
+            except (socket.gaierror, ValueError):
+                return False
+        return True
 
     def _extract_content(self, url: str) -> str:
         resp = self._get(url)
@@ -111,6 +140,8 @@ class WebSearchTool(BaseTool):
             return ToolResult.failure("invalid_query")
         try:
             if url:
+                if not self._is_safe_url(url):
+                    return ToolResult.failure("unsafe_url")
                 target = url
                 content = self._bounded(self._extract_content, target)
             else:

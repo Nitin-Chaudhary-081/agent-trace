@@ -64,17 +64,19 @@ def score_matches(
 
 
 def in_order(expected: list[str], actual: list[str]) -> bool:
+    """True when the expected tools that actually ran appear in expected order.
+
+    A truncated-but-correct prefix (some expected tools never called) is NOT
+    a wrong-order violation.
+    """
+    present = [t for t in actual if t in expected]
     cursor = 0
-    for tool in expected:
-        found = False
-        while cursor < len(actual):
-            if actual[cursor] == tool:
-                cursor += 1
-                found = True
-                break
+    for tool in present:
+        while cursor < len(expected) and expected[cursor] != tool:
             cursor += 1
-        if not found:
+        if cursor >= len(expected):
             return False
+        cursor += 1
     return True
 
 

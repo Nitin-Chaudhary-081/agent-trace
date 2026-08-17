@@ -50,6 +50,8 @@ class Reporter:
 
     def export_record(self, run_id: str) -> str:
         run = self.trajectory.get_run(run_id)
+        if run is None:
+            return json.dumps({"run_id": run_id, "found": False})
         steps = self.trajectory.steps(run_id)
         record = {
             "task": run["task"],
@@ -63,6 +65,11 @@ class Reporter:
 
     def export_jsonl(self, run_id: str, out_path: str) -> None:
         run = self.trajectory.get_run(run_id)
+        if run is None:
+            Path(out_path).write_text(
+                json.dumps({"run_id": run_id, "found": False}) + "\n", encoding="utf-8"
+            )
+            return
         steps = self.trajectory.steps(run_id)
         record = {
             "task": run["task"],

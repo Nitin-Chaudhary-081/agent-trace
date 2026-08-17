@@ -15,6 +15,7 @@ export function GoldenPathScore({ runId }: { runId: string }) {
         const data = await fetchRun(runId)
         if (cancelled) return
         setRun(data.run)
+        setDeviations(data.deviations ?? [])
       } catch {
         // backend not up yet
       }

@@ -31,9 +31,11 @@ def contains_injection_marker(text: str) -> bool:
 
 
 def _strip_injection(text: str) -> str:
+    lower = text.lower()
     for marker in INJECTION_MARKERS:
-        text = text.replace(marker, "[SANITIZED]")
-        text = text.replace(marker.lower(), "[SANITIZED]")
+        needle = marker.lower()
+        if needle in lower:
+            text = re.sub(re.escape(marker), "[SANITIZED]", text, flags=re.IGNORECASE)
     return text
 
 

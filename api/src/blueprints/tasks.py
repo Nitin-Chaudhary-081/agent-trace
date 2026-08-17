@@ -7,6 +7,7 @@ from src.errors import ValidationError
 bp = Blueprint("tasks", __name__)
 
 TASK_TYPES = ("research_and_email", "inbox_summarize", "data_lookup_report")
+MAX_TASK_CHARS = 4000
 
 
 @bp.post("")
@@ -17,6 +18,8 @@ def submit_task():
 
     if not task:
         raise ValidationError("task is required")
+    if len(task) > MAX_TASK_CHARS:
+        raise ValidationError(f"task exceeds {MAX_TASK_CHARS} chars")
     if task_type and task_type not in TASK_TYPES:
         raise ValidationError(f"unsupported task_type: {task_type}")
 
